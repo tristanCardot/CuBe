@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>CuBe</title>
     <script src='CSSUnifier.js'></script>
-    <style>
+    <style id='cubeStyle'>
         body{
             margin:0px;
         }
@@ -240,9 +240,10 @@
 
             callback();
         }
-
+        
         window.addEventListener('load',function(){
-            document.head.getElementsByTagName('style')[0].convert();
+
+            document.getElementById('cubeStyle').convert();
             cube = new Cube();
             document.getElementById('container').appendChild(cube.node);
 
