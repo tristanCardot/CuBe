@@ -1,288 +1,287 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>CuBe</title>
-    <script src='CSSUnifier.js'></script>
-    <style>
-        body{
-            margin:0px;
-        }
+<head>
+	<meta charset="UTF-8">
+	<title>CuBe</title>
+	<script src='CSSUnifier.js'></script>
+	<style id='cubeStyle'>
+		body{
+			margin:0px;
+		}
 
-        div#container{
-            position: relative;
-            height: 300px;
-            width: 300px;
-            perspective: 450px;
-            margin: auto;
-            box-shadow: 0px 0px 15px 5px black;
-            background-color: rgb(200,200,200);
-        }
+		div#container{
+			position: relative;
+			height: 300px;
+			width: 300px;
+			perspective: 450px;
+			margin: auto;
+			box-shadow: 0px 0px 15px 5px black;
+			background-color: rgb(200,200,200);
+		}
 
-        div#container div{
-            position: absolute;
-            transform-style: preserve-3d;
-        }
+		div#container div{
+			position: absolute;
+			transform-style: preserve-3d;
+		}
 
-        div#container div.cube{
-            top: 130px;
-            left: 135px;
-            transform: rotateX(-20deg) rotateY(20deg);
-        }
+		div#container div.cube{
+			top: 130px;
+			left: 135px;
+			transform: rotateX(-20deg) rotateY(20deg);
+		}
 
-        div#container div.cube div{
-            top: -50px;
-            left: -50px;
-            height: 100px;
-            width: 100px;
-            background-color: rgb(180,180,180);
-            background-image: url(faces.png);
-            box-shadow: inset 0px 0px 3px 1px black, 0px 0px 1px 0px black;
-        }
-    </style>
-    <script>
-        var cube;
+		div#container div.cube div{
+			top: -50px;
+			left: -50px;
+			height: 100px;
+			width: 100px;
+			background-color: rgb(180,180,180);
+			background-image: url(faces.png);
+			box-shadow: inset 0px 0px 3px 1px black, 0px 0px 1px 0px black;
+		}
+	</style>
+	<script>
+		var cube;
+
+		var ROTATION = 200,
+			PAUSE = 2000;
+
 		/** @constructor*/
-        function Cube(){
-            this.node = this.initNode();
-            this.list = this.initList();
-        }
+		function Cube(){
+			this.list = [];
+			this.node = this.initNode();
+		}
 
-        Cube.prototype = {  
+		Cube.prototype = {
+			/** permet de créer et initialiser les éléments du cube 
+			  * @type HTMLDivElement */
+			initNode : function(){
+				var cube = document.createElement('div');
+				cube.className = 'cube';
 
-            /** permet de créer et initialiser les éléments du cube 
-              * @type HTMLDivElement */
-            initNode : function(){
-                var cube = document.createElement('div');
-                cube.className = 'cube';
+				var string = "";
+				for(var i=0; i<24; i++)
+					string += "<div></div>";
+				cube.innerHTML = string;
 
-                var string = "";
-                for(var i=0; i<24; i++)
-                    string += "<div></div>";
-                cube.innerHTML = string;
+				var operators = [0, 0, 0],
+					values = [100, 50, 50],
+					nodeS,
+					off,
+					neg = [0, 2, 6, 8, 9, 10, 13, 14, 16, 24, 25, 29];
 
-                var prefix = "matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)",
-                    operators = ['', '', ''],
-                    values = ['100', '50', '50'],
-                    nodeS,
-                    off,
-                    neg = [0, 2, 6, 8, 9, 10, 13, 14, 16, 24, 25, 29];
+				var defMat = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
+					nodeMat,
+					data;
 
-                for(var i=0, j; i<8; i++){
-                    operators[0] = ((i&1) === 0 ? '-':'');
-                    operators[1] = ((i&2) === 0 ? '-':'');
-                    operators[2] = ((i&4) === 0 ? '-':'');
+				for(var i=0, j; i<8; i++){
+					operators[0] = ((i&1) === 0 ? -1:1);
+					operators[1] = ((i&2) === 0 ? -1:1);
+					operators[2] = ((i&4) === 0 ? -1:1);
 
-                    for(j=0; j<3; j++){
-                        off = (neg.indexOf( (i<<2)+j ) !== -1 ? (j===2 ? '-180':'-90') : (j===2 ? '0':'90') );
-                        nodeS = cube.childNodes[i*3+j].style;
+					data = [];
 
-                        nodeS.transform = prefix +"translate3d("+ operators[0] +values[j] +"px,"+ operators[1] +values[ (j+2)%3 ] +"px,"+ operators[2] +values[ (j+1)%3 ] +"px) rotate"+ (j===1? 'X':'Y') +"("+ off +"deg)";
-                        nodeS.backgroundPosition = "-"+ 100*i + "px -"+ 100*j +"px";
-                    }
-                }
+					for(j=0; j<3; j++){
+						nodeMat = defMat.slice();
+						off = (neg.indexOf( (i<<2)+j ) === -1 ? '+':'-');
 
-                return cube;
+						if(j===2){
+							if(off === '-')
+								nodeMat = multiplyMatrix(nodeMat, [-1,0,0,0, 0,1,0,0, 0,0,-1,0, 0,0,0,1]);
+
+						}else
+							nodeMat = multiplyMatrix(nodeMat, matrix[ off +(j===1? 'X':'Y')] );
+
+						for(k=0; k<3; k++)
+							nodeMat[12+k] = operators[k] *values[ (j+3-k) %3];
+
+						nodeS = cube.childNodes[i*3+j].style;
+						nodeS.transform = "matrix3d("+ nodeMat.join(',') +")";
+						nodeS.backgroundPosition = "-"+ 100*i + "px -"+ 100*j +"px";
+
+						data.push({i: i*3+j, matrix: nodeMat});
+					}
+
+					this.list.push(data);
+				}
+
+				return cube;
             },
 
-            /** initialise la list pour savoir l'emplacement des éléments
-              * @type Array<number> */
-            initList : function(){
-                var matrix = [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],
-                    list = [];
+			/** prépare la rotation d'une face */
+			rotate : function(face, rotation, callback){
+				if((face&3) === 3 || rotation === 0)
+					return;
 
-                for(var i=0; i<8; i++)
-                    list.push({i:i, matrix: matrix.slice()});
+				var off = (face&4) >>2,
+					values = [], 
+					data = [],
+					p = {0: [off,off,off,off],  1: [0,1,1,0], 2: [0,0,1,1]};
 
-                return list;
-            },
+				p.x = p[(face&3)];
+				p.y = p[((face&3) +1) %3];
+				p.z = p[((face&3) +2) %3];
 
-            /** prépare la rotation d'une face */
-            rotate : function(face, rotation, callback){
-                if((face&3) === 3 || rotation === 0)
-                    return;
+				for(var i=0; i<4; i++){
+					values.push( p.x[i] +(p.y[i]<<1) +(p.z[i]<<2));
+					data = data.concat( this.list[ values[i] ] );
+				}
 
-                var off = (face&4) >>2,
-                    values = [], 
-                    data = [],
-                    p = {0: [off,off,off,off],  1: [0,1,1,0], 2: [0,0,1,1]};
+				var save = this.list[ values[(4-rotation) %4] ],
+					tmp,
+					axis;
 
-                p.x = p[(face&3)];
-                p.y = p[((face&3) +1) %3];
-                p.z = p[((face&3) +2) %3];
+				for(var i=4; i<8 && i>0; i+=rotation){
+					tmp = this.list[ values[i%4] ];
+					this.list[ values[i%4] ] = save;
+					save = tmp;
+				}
 
-                for(var i=0; i<4; i++){
-                    values.push( p.x[i] +(p.y[i]<<1) +(p.z[i]<<2));
-                    data.push( this.list[ values[i] ] );
-                }
+				switch(face&3){
+					case 0: axis = 'X'; break;
+					case 1: axis = 'Z'; break;
+					case 2: axis = 'Y'; break;
+				}
 
-                var save = this.list[ values[(4-rotation) %4] ],
-                    tmp,
-                    axis;
+				this.updateAxis(data, rotation<0 ? '-':'+', axis, callback);
+			},
 
-                for(var i=4; i<8 && i>0; i+=rotation){
-                    tmp = this.list[ values[i%4] ];
-                    this.list[ values[i%4] ] = save;
-                    save = tmp;
-                }
+			/** exec la rotation d'une face */
+			updateAxis : function(data, rotate, axis, callback){
+				var start = Date.now();
+				var matrices = [];
 
-                switch(face&3){
-                    case 0: axis = 'X'; break;
-                    case 1: axis = 'Z'; break;
-                    case 2: axis = 'Y'; break;
-                }
+				for(var i=0, from; i<12; i++){
+					from = data[i].matrix;
+					data[i].matrix = multiplyMatrix( data[i].matrix, matrix[ rotate+axis ]);
+					matrices.push([from, data[i].matrix]);
+				}
 
-                this.updateAxis(data, rotation<0 ? '-':'+', axis, callback);
-            },
+				var interval = setInterval(function(cube){
+					var progress = (Date.now() -start) /ROTATION;
 
-            /** exec la rotation d'une face */
-            updateAxis : function(data, rotate, axis, callback){
-                var start = Date.now();
-                var matrices = [];
+					for(var j=0, nodes; j<12; j++){
+						nodeS = cube.node.childNodes[ data[j].i ].style;
+						nodeS.transform = (progress >= 1 ?
+							"matrix3d("+ matrices[j][1].join(',') :
+							"matrix3d("+ transitionMatrix( matrices[j][0], matrices[j][1], progress).join(','));
+					}
 
-                for(var i=0, from; i<4; i++){
-                    from = data[i].matrix;
-                    data[i].matrix = multiplyMatrix( data[i].matrix, matrix[ rotate+axis ]);
-                    matrices.push([from, data[i].matrix]);
-                }
+					if(progress >= 1){
+						clearInterval(interval);
+						callback();
+					}
+				}, 16, this);
+			}
+		};
 
-                var interval = setInterval(function(cube){
-                    var progress = (Date.now() -start) /175;
+		/** @since permet de multiplier deux matrices de 4*4 (ma*mb) */
+		function multiplyMatrix(ma, mb){
+			var list = [];
 
-                    for(var j=0, from, i, end, nodes; j<4; j++){
-                        from = data[j];
+			for(var i=0, ia,ib; i<16; i++){
+				ib = i %4; 
+				ia = i -ib;
 
-                        for(i=from.i*3, end=from.i*3+3;  i<end;  i++){
-                            nodeS = cube.node.childNodes[i].style;
-                            nodeS.transform = (progress >= 1 ?
-                                "matrix3d("+ matrices[j][1].join(',') + nodeS.transform.slice(nodeS.transform.indexOf(')')) :
-                                "matrix3d("+ transitionMatrix(matrices[j][0], matrices[j][1], progress).join(',') + nodeS.transform.slice(nodeS.transform.indexOf(')')) );
-                        }
-                    }
+				list.push(ma[ia] *mb[ib] + ma[ia+1] *mb[ib+4] + ma[ia+2] *mb[ib+8] + ma[ia+3] *mb[ib+12]);
+			}
 
-                    if(progress >= 1){
-                        clearInterval(interval);
-                        callback();
-                    }
-                }, 16, this);
-            }
-        };
+			return list;
+		}
 
-        /** @since permet de multiplier deux matrices de 4*4 (ma*mb) */
-        function multiplyMatrix(ma, mb){
-            var list = [];
+		/** @since permet d'avoir la transition d'une matrice (0->1) */
+		function transitionMatrix(from, to, progress){
+			var tab = [],
+				progressI = 1-progress;
 
-            for(var i=0, ia,ib; i<16; i++){
-                  ib = i %4; 
-                  ia = i -ib;
-
-               list.push(ma[ia] *mb[ib] + ma[ia+1] *mb[ib+4] + ma[ia+2] *mb[ib+8] + ma[ia+3] *mb[ib+12]);
-             }
-
-            return list;
-        }
-
-        /** @since permet d'avoir la transition d'une matrice (0->1) */
-        function transitionMatrix(from, to, progress){
-            var tab = [],
-                progressI = 1-progress,
-                off;
-
-            for(var i=0; i<16; i++){
+			for(var i=0; i<16; i++)
                 tab.push(from[i]*progressI + to[i]*progress);
 
-                if(tab[i] !== 0){
-                    off = tab[i]<0 ? -1:1;
-                    tab[i] = off -Math.asin(off-tab[i]) /(Math.PI/2);
-                }
-            }
+			return tab;
+		}
 
-            return tab;
-        }
+		/** @since liste des matrices de rotation sur les différents axes */
+		var matrix = {
+			'-X': [1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1],
+			'-Y': [0,0,1,0, 0,1,0,0, -1,0,0,0, 0,0,0,1],
+			'-Z': [0,-1,0,0, 1,0,0,0, 0,0,1,0, 0,0,0,1],
+			'+X': [1,0,0,0, 0,0,1,0, 0,-1,0,0, 0,0,0,1],
+			'+Y': [0,0,-1,0, 0,1,0,0, 1,0,0,0, 0,0,0,1],
+			'+Z': [0,1,0,0, -1,0,0,0, 0,0,1,0, 0,0,0,1]
+		};
 
-        /** @since liste des matrices de rotation sur les différents axes */
-        var matrix = {
-            '-X': [1,0,0,0, 0,0,-1,0, 0,1,0,0, 0,0,0,1],
-            '-Y': [0,0,1,0, 0,1,0,0, -1,0,0,0, 0,0,0,1],
-            '-Z': [0,-1,0,0, 1,0,0,0, 0,0,1,0, 0,0,0,1],
-            '+X': [1,0,0,0, 0,0,1,0, 0,-1,0,0, 0,0,0,1],
-            '+Y': [0,0,-1,0, 0,1,0,0, 1,0,0,0, 0,0,0,1],
-            '+Z': [0,1,0,0, -1,0,0,0, 0,0,1,0, 0,0,0,1]
-        };
+		/** exécute une suite de rotation*/
+		function execMatrix(param, callback){
+			var i=-2;
 
-        /** exécute une suite de rotation*/
-        function execMatrix(param, callback){
-            var i=-2;
+			var startNext = function(){
+				i+=2;
 
-            var startNext = function(){
-                i+=2;
+				if(i<param.length)
+					cube.rotate(param[i], param[i+1], startNext);
+				else
+					callback();
+			};
 
-                if(i<param.length)
-                    cube.rotate(param[i], param[i+1], startNext);
-                else
-                    callback();
-            };
+			startNext();
+		}
 
-            startNext();
-        }
+		function execChainMatrix(list){
+			var i=-1;
 
-        function execChainMatrix(list){
-            var i=-1;
+			var callback = function(){
+				i++;
 
-            var callback = function(){
-                i++;
+				if(i<list.length)
+					setTimeout(execMatrix, PAUSE, list[i], callback);
+				else
+					setTimeout(execChainMatrix, PAUSE, list);
+			};
 
-                if(i<list.length)
-                    setTimeout(execMatrix, 2500, list[i], callback);
-                else
-                    setTimeout(execChainMatrix, 2500, list);
-            };
+			callback();
+		}
 
-            callback();
-        }
+		window.addEventListener('load',function(){
+			document.getElementById('cubeStyle').convert();
+			cube = new Cube();
+			document.getElementById('container').appendChild(cube.node);
 
-        window.addEventListener('load',function(){
-            document.head.getElementsByTagName('style')[0].convert();
-            cube = new Cube();
-            document.getElementById('container').appendChild(cube.node);
-
-            execChainMatrix([
-                [2,-1, 6,1, 1,1],
-                [5,1, 6,1, 2,-1, 5,1, 1,1, 5,1],
-                [5,1, 5,1, 2,-1, 6,1, 5,1],
-                [2,-1, 6,-1, 4,-1, 6,1], 
-                [6,-1, 4,-1, 2,1],
-                [2,-1, 2,-1, 2,-1], 
-                [0,-1, 2,-1], 
-                [2,1, 2,1, 2,1],
-                [0,1, 0,1, 2,1, 1,1, 0,-1, 4,-1, 5,1],
-                [6,1, 6,1, 4,1, 6,-1, 0,-1],
-                [4,-1, 6,1],
-                [6,-1, 4,1, 2,-1, 4,1, 6,1],
-                [6,-1, 4,-1, 2,1],
-                [0,-1, 6,-1],
-                [5,1, 6,-1, 1,1, 6,-1, 5,-1],
-                [5,1, 2,1, 6,-1, 0,1, 4,-1, 4,-1, 0,1],
-                [4,1, 1,1, 0,-1, 1,1, 0,1, 1,-1, 1,-1, 6,-1],
-                [6,1, 0,-1, 4,-1, 2,-1, 4,-1, 6,-1, 6,-1, 4,1, 2,1, 4,-1, 2,1, 6,-1],
-                [2,-1, 6,-1, 4,1, 4,1, 6,-1, 4,1,  6,-1, 0,-1],
-                [0,-1,  6,1,  4,-1, 6,-1, 0,-1, 0,-1, 6,1, 6,1, 1,1]
-            ]);
+			execChainMatrix([
+				[2,-1, 6,1, 1,1],
+				[5,1, 6,1, 2,-1, 5,1, 1,1, 5,1],
+				[5,1, 5,1, 2,-1, 6,1, 5,1],
+				[2,-1, 6,-1, 4,-1, 6,1], 
+				[6,-1, 4,-1, 2,1],
+				[2,-1, 2,-1, 2,-1], 
+				[0,-1, 2,-1], 
+				[2,1, 2,1, 2,1],
+				[0,1, 0,1, 2,1, 1,1, 0,-1, 4,-1, 5,1],
+				[6,1, 6,1, 4,1, 6,-1, 0,-1],
+				[4,-1, 6,1],
+				[6,-1, 4,1, 2,-1, 4,1, 6,1],
+				[6,-1, 4,-1, 2,1],
+				[0,-1, 6,-1],
+				[5,1, 6,-1, 1,1, 6,-1, 5,-1],
+				[5,1, 2,1, 6,-1, 0,1, 4,-1, 4,-1, 0,1],
+				[4,1, 1,1, 0,-1, 1,1, 0,1, 1,-1, 1,-1, 6,-1],
+				[6,1, 0,-1, 4,-1, 2,-1, 4,-1, 6,-1, 6,-1, 4,1, 2,1, 4,-1, 2,1, 6,-1],
+				[2,-1, 6,-1, 4,1, 4,1, 6,-1, 4,1,  6,-1, 0,-1],
+				[0,-1,  6,1,  4,-1, 6,-1, 0,-1, 0,-1, 6,1, 6,1, 1,1]
+			]);
 			window.onresize();
-        }, false);
+		}, false);
 
-        window.onresize = function(){
-            var value = (window.innerHeight /2 -150);
-            if(value < 0)
-                value = 0;
+		window.onresize = function(){
+			var value = (window.innerHeight /2 -150);
+			if(value < 0)
+				value = 0;
 
-            document.getElementById('container').style.top = value +'px';
-        };
-
-    </script>
-  </head>
-  <body>
-    <div id='container'>
-    </div>
-  </body>
+			document.getElementById('container').style.top = value +'px';
+		};
+	</script>
+</head>
+<body>
+	<div id='container'>
+	</div>
+	</body>
 </html>
