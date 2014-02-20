@@ -13,6 +13,7 @@
 			position: relative;
 			height: 300px;
 			width: 300px;
+			border-radius: 150px;
 			perspective: 450px;
 			margin: auto;
 			box-shadow: 0px 0px 15px 5px black;
@@ -25,8 +26,8 @@
 		}
 
 		div#container div.cube{
-			top: 130px;
-			left: 135px;
+			top: 135px;
+			left: 140px;
 			transform: rotateX(-20deg) rotateY(20deg);
 		}
 
@@ -36,7 +37,7 @@
 			height: 100px;
 			width: 100px;
 			background-color: rgb(180,180,180);
-			background-image: url(faces.png);
+			background-image: url(faces.jpeg);
 			box-shadow: inset 0px 0px 3px 1px black, 0px 0px 1px 0px black;
 		}
 	</style>
@@ -45,6 +46,17 @@
 
 		var ROTATION = 200,
 			PAUSE = 2000;
+
+		if ( !window.requestAnimationFrame )
+			window.requestAnimationFrame = ( function() {
+				return window.webkitRequestAnimationFrame ||
+					window.mozRequestAnimationFrame ||
+					window.oRequestAnimationFrame ||
+					window.msRequestAnimationFrame ||
+					function ( callback, element ) {
+						window.setTimeout( callback, 1000 / 60 );
+					};
+			} )();
 
 		/** @constructor*/
 		function Cube(){
@@ -163,9 +175,11 @@
 
 					for(var j=0, nodes; j<12; j++){
 						nodeS = self.node.childNodes[ data[j].i ].style;
-						nodeS.transform = (progress >= 1 ?
-							"matrix3d("+matrices[j][1].join(',') :
-							"matrix3d("+ transitionMatrix( matrices[j][0], matrices[j][1], progress).join(','));
+
+						if(progress >= 1)
+							nodeS.transform = "matrix3d("+matrices[j][1].join(',') + ')';
+						else
+							nodeS.transform = "matrix3d("+ transitionMatrix( matrices[j][0], matrices[j][1], progress).join(',') + ')';
 					}
 
 					if(progress >= 1)
