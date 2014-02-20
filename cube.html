@@ -157,21 +157,24 @@
 					matrices.push([from, data[i].matrix]);
 				}
 
-				var interval = setInterval(function(cube){
+				var self = this;
+				var interval = function(){
 					var progress = (Date.now() -start) /ROTATION;
 
 					for(var j=0, nodes; j<12; j++){
-						nodeS = cube.node.childNodes[ data[j].i ].style;
+						nodeS = self.node.childNodes[ data[j].i ].style;
 						nodeS.transform = (progress >= 1 ?
-							"matrix3d("+ matrices[j][1].join(',') :
+							"matrix3d("+matrices[j][1].join(',') :
 							"matrix3d("+ transitionMatrix( matrices[j][0], matrices[j][1], progress).join(','));
 					}
 
-					if(progress >= 1){
-						clearInterval(interval);
+					if(progress >= 1)
 						callback();
-					}
-				}, 16, this);
+					else
+						requestAnimationFrame(interval);
+				};
+
+				interval();
 			}
 		};
 
