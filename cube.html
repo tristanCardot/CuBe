@@ -412,21 +412,6 @@
 
 			startNext();
 		}
-
-		function execChainMatrix(list){
-			var i=-1;
-
-			var callback = function(){
-				i++;
-
-				if(i<list.length)
-					setTimeout(execMatrix, PAUSE, list[i], callback);
-				else
-					setTimeout(execChainMatrix, PAUSE, list);
-			};
-
-			callback();
-		}
 		
 		function r(range){
 			return Math.floor( Math.random() *range);
